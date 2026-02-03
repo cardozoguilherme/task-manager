@@ -29,7 +29,7 @@ export class TasksService {
       ];
     }
 
-    return this.prisma.task.findMany({ where });
+    return await this.prisma.task.findMany({ where });
   }
 
   async getTaskById(id: string) {
@@ -45,10 +45,12 @@ export class TasksService {
   }
 
   async createTask(createTaskDto: CreateTaskDto) {
-    return this.prisma.task.create({
+    const { title, description } = createTaskDto;
+
+    return await this.prisma.task.create({
       data: {
-        title: createTaskDto.title,
-        description: createTaskDto.description,
+        title: title,
+        description: description,
       },
     });
   }
@@ -65,11 +67,10 @@ export class TasksService {
     const { status } = updateTaskStatusDto;
 
     try {
-      const result = await this.prisma.task.update({
+      return await this.prisma.task.update({
         where: { id: id },
         data: { status: status },
       });
-      return result;
     } catch {
       throw new NotFoundException(`Task with id ${id} not found.`);
     }
