@@ -24,10 +24,11 @@ export class UserService {
       });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        this.logger.error(`Prisma error: ${error.code} - ${error.message}`);
         if (error.code === 'P2002') {
+          this.logger.warn(`Attempt to create duplicate username: ${username}`);
           throw new ConflictException('Username already exists');
         }
+        this.logger.error(`Prisma error: ${error.code} - ${error.message}`);
       } else {
         this.logger.error('Unknown error:', error);
       }
