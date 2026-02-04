@@ -9,14 +9,16 @@ import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAllTasks() {
-    return await this.prisma.task.findMany();
+  async getAllTasks(userId: string) {
+    return this.prisma.task.findMany({
+      where: { userId },
+    });
   }
 
-  async getTasksWithFilters(taskFilterDto: TaskFilterDto) {
+  async getTasksWithFilters(taskFilterDto: TaskFilterDto, userId: string) {
     const { status, search } = taskFilterDto;
 
-    const where: Prisma.TaskWhereInput = {};
+    const where: Prisma.TaskWhereInput = { userId };
 
     if (status) {
       where.status = status;
@@ -32,9 +34,9 @@ export class TasksService {
     return await this.prisma.task.findMany({ where });
   }
 
-  async getTaskById(id: string) {
-    const task = await this.prisma.task.findUnique({
-      where: { id },
+  async getTaskById(id: string, userId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: { id, userId },
     });
 
     if (!task) {
@@ -44,35 +46,48 @@ export class TasksService {
     return task;
   }
 
-  async createTask(createTaskDto: CreateTaskDto) {
+  async createTask(createTaskDto: CreateTaskDto, userId: string) {
     const { title, description } = createTaskDto;
 
     return await this.prisma.task.create({
       data: {
-        title: title,
-        description: description,
+        title,
+        description,
+        userId,
       },
     });
   }
 
-  async deleteTask(id: string) {
-    try {
-      return await this.prisma.task.delete({ where: { id: id } });
-    } catch {
+  async deleteTask(id: string, userId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: { id, userId },
+    });
+
+    if (!task) {
       throw new NotFoundException(`Task with id ${id} not found.`);
     }
+
+    return this.prisma.task.delete({ where: { id } });
   }
 
-  async updateTaskStatus(id: string, updateTaskStatusDto: UpdateTaskStatusDto) {
+  async updateTaskStatus(
+    id: string,
+    updateTaskStatusDto: UpdateTaskStatusDto,
+    userId: string,
+  ) {
     const { status } = updateTaskStatusDto;
 
-    try {
-      return await this.prisma.task.update({
-        where: { id: id },
-        data: { status: status },
-      });
-    } catch {
+    const task = await this.prisma.task.findFirst({
+      where: { id, userId },
+    });
+
+    if (!task) {
       throw new NotFoundException(`Task with id ${id} not found.`);
     }
+
+    return this.prisma.task.update({
+      where: { id },
+      data: { status },
+    });
   }
 }
